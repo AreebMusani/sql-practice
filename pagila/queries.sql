@@ -55,3 +55,39 @@ JOIN category c
 JOIN payment p 
     ON r.rental_id = p.rental_id
 GROUP BY c.category_id, c.name;
+
+
+-- Find the top 3 customers per category by total spending
+WITH category_spendings AS (
+    SELECT 
+        c.name AS category,
+        cus.customer_id,
+        cus.first_name || ' ' || cus.last_name AS customer,
+        SUM(p.amount) AS total_spent
+    FROM payment p
+    JOIN customer cus 
+        ON p.customer_id = cus.customer_id
+    JOIN rental r 
+        ON p.rental_id = r.rental_id
+    JOIN inventory i 
+        ON r.inventory_id = i.inventory_id
+    JOIN film_category fc 
+        ON i.film_id = fc.film_id
+    JOIN category c 
+        ON fc.category_id = c.category_id
+    GROUP BY 
+        c.category_id, c.name,
+        cus.customer_id, cus.first_name, cus.last_name
+),
+ranked_customers AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY category
+            ORDER BY total_spent DESC
+        ) AS rank
+    FROM category_spendings
+)
+SELECT *
+FROM ranked_customers
+WHERE rank <= 3;
