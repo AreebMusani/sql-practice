@@ -127,3 +127,29 @@ JOIN customer c
   ON c.customer_id = s.customer_id
 WHERE s.total_spending > s.avg_spending;
 
+
+-- For each customer, show their total spending and classify them as
+-- 'High' → above average
+-- 'Low' → below or equal average”
+
+WITH customer_spending AS (
+  SELECT p.customer_id, 
+    SUM(p.amount) as total_spending
+  FROM payment p
+  GROUP BY p.customer_id
+),
+spending_with_avg AS (
+  SELECT *,
+    AVG(t.total_spending) OVER() as avg_spending
+  FROM customer_spending t
+)
+SELECT t.customer_id,
+  c.first_name || ' ' || c.last_name AS full_name,
+  t.total_spending,
+  CASE 
+    WHEN t.total_spending > t.avg_spending THEN 'High'
+    ELSE 'Low'
+  END AS customer_category
+FROM spending_with_avg t
+INNER JOIN customer c 
+  ON c.customer_id = t.customer_id
