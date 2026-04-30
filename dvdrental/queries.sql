@@ -103,3 +103,27 @@ SELECT *
 FROM rank_customers_per_store t
 WHERE t.rank <= 3
 
+
+-- Find customers whose total spending is above the average total spending of all customers
+WITH customer_spending AS (
+  SELECT 
+    p.customer_id,
+    SUM(p.amount) AS total_spending
+  FROM payment p
+  GROUP BY p.customer_id
+),
+spending_with_avg AS (
+  SELECT 
+    cs.*,
+    AVG(cs.total_spending) OVER () AS avg_spending
+  FROM customer_spending cs
+)
+SELECT 
+  s.customer_id,
+  c.first_name || ' ' || c.last_name AS full_name,
+  s.total_spending
+FROM spending_with_avg s
+JOIN customer c 
+  ON c.customer_id = s.customer_id
+WHERE s.total_spending > s.avg_spending;
+
